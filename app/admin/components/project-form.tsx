@@ -4,11 +4,12 @@ import { useState, useTransition, useActionState, useEffect, useRef } from 'reac
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Upload, X, Save, ArrowLeft, Loader2, Image as ImageIcon } from 'lucide-react'
+import { Upload, X, Save, ArrowLeft, Loader2, Image as ImageIcon, Crop } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { ActionState } from '../actions'
 import { MarkdownEditor } from './markdown-editor'
+import { ImageCropperModal } from './image-cropper'
 
 interface ProjectFormProps {
   project?: {
@@ -68,6 +69,14 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
   const [archFile, setArchFile] = useState<File | null>(null)
   const [isDraggingOverArch, setIsDraggingOverArch] = useState(false)
 
+  // Cropper state
+  const [cropperState, setCropperState] = useState<{
+    src: string
+    filename: string
+    target: 'image' | 'architecture'
+    aspectRatio: number | null
+  } | null>(null)
+
   const handleDragOverArch = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDraggingOverArch(true)
@@ -84,33 +93,33 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
 
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      setArchFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setArchPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-
-      const fileInput = document.getElementById('architecture-upload') as HTMLInputElement
-      if (fileInput) {
-        fileInput.files = e.dataTransfer.files
-      }
+      const url = URL.createObjectURL(file)
+      setCropperState({
+        src: url,
+        filename: file.name,
+        target: 'architecture',
+        aspectRatio: null,
+      })
     }
   }
 
   const handleArchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setArchFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setArchPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      const url = URL.createObjectURL(file)
+      setCropperState({
+        src: url,
+        filename: file.name,
+        target: 'architecture',
+        aspectRatio: null,
+      })
     }
   }
 
   const handleRemoveArch = () => {
+    if (archPreview && archPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(archPreview)
+    }
     setArchFile(null)
     setArchPreview(null)
     const fileInput = document.getElementById('architecture-upload') as HTMLInputElement
@@ -133,17 +142,13 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
 
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-
-      const fileInput = document.getElementById('image-upload') as HTMLInputElement
-      if (fileInput) {
-        fileInput.files = e.dataTransfer.files
-      }
+      const url = URL.createObjectURL(file)
+      setCropperState({
+        src: url,
+        filename: file.name,
+        target: 'image',
+        aspectRatio: 16 / 9,
+      })
     }
   }
 
@@ -179,20 +184,93 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      const url = URL.createObjectURL(file)
+      setCropperState({
+        src: url,
+        filename: file.name,
+        target: 'image',
+        aspectRatio: 16 / 9,
+      })
     }
   }
 
   const handleRemoveImage = () => {
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview)
+    }
     setImageFile(null)
     setImagePreview(null)
     const fileInput = document.getElementById('image-upload') as HTMLInputElement
     if (fileInput) fileInput.value = ''
+  }
+
+  const handleCropperConfirm = (croppedFile: File) => {
+    const previewUrl = URL.createObjectURL(croppedFile)
+    const target = cropperState?.target
+
+    if (target === 'image') {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview)
+      }
+      setImageFile(croppedFile)
+      setImagePreview(previewUrl)
+      
+      const fileInput = document.getElementById('image-upload') as HTMLInputElement
+      if (fileInput) {
+        const dt = new DataTransfer()
+        dt.items.add(croppedFile)
+        fileInput.files = dt.files
+      }
+    } else if (target === 'architecture') {
+      if (archPreview && archPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(archPreview)
+      }
+      setArchFile(croppedFile)
+      setArchPreview(previewUrl)
+      
+      const fileInput = document.getElementById('architecture-upload') as HTMLInputElement
+      if (fileInput) {
+        const dt = new DataTransfer()
+        dt.items.add(croppedFile)
+        fileInput.files = dt.files
+      }
+    }
+
+    if (cropperState?.src) {
+      URL.revokeObjectURL(cropperState.src)
+    }
+    setCropperState(null)
+  }
+
+  const handleCropperClose = () => {
+    if (cropperState?.src) {
+      URL.revokeObjectURL(cropperState.src)
+    }
+    setCropperState(null)
+  }
+
+  const handleEditImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (imagePreview) {
+      setCropperState({
+        src: imagePreview,
+        filename: imageFile?.name || 'project-image.jpg',
+        target: 'image',
+        aspectRatio: 16 / 9,
+      })
+    }
+  }
+
+  const handleEditArch = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (archPreview) {
+      setCropperState({
+        src: archPreview,
+        filename: archFile?.name || 'architecture-diagram.jpg',
+        target: 'architecture',
+        aspectRatio: null,
+      })
+    }
   }
 
   // Parse tags for live preview
@@ -413,6 +491,14 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
 
                   <button
                     type="button"
+                    onClick={handleEditImage}
+                    className="absolute top-3 right-12 z-30 grid size-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/85"
+                    title="Crop / Resize Image"
+                  >
+                    <Crop className="size-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={handleRemoveImage}
                     className="absolute top-3 right-3 z-30 grid size-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/85"
                   >
@@ -500,6 +586,14 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
                     </span>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={handleEditArch}
+                    className="absolute top-3 right-12 z-30 grid size-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/85"
+                    title="Crop / Resize Image"
+                  >
+                    <Crop className="size-4" />
+                  </button>
                   <button
                     type="button"
                     onClick={handleRemoveArch}
@@ -630,6 +724,15 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
           </div>
         </form>
       </div>
+      {cropperState && (
+        <ImageCropperModal
+          src={cropperState.src}
+          filename={cropperState.filename}
+          defaultAspectRatio={cropperState.aspectRatio}
+          onClose={handleCropperClose}
+          onConfirm={handleCropperConfirm}
+        />
+      )}
     </div>
   )
 }

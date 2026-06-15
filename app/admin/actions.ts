@@ -281,7 +281,7 @@ export async function reorderProjectsAction(projectIds: string[]): Promise<Actio
     const firstError = results.find((r) => r.error)
 
     if (firstError) {
-      return { error: `Database error: ${firstError.error.message}` }
+      return { error: `Database error: ${firstError.error!.message}` }
     }
 
     revalidatePath('/')

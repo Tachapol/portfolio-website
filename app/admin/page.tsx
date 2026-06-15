@@ -42,7 +42,7 @@ export default async function AdminDashboard() {
   const tagsSet = new Set<string>()
   projects?.forEach(p => {
     if (p.tags) {
-      p.tags.forEach(t => tagsSet.add(t))
+      p.tags.forEach((t: any) => tagsSet.add(t))
     }
   })
   const totalTechs = tagsSet.size

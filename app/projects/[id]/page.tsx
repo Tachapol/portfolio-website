@@ -1,6 +1,7 @@
 import { createStaticClient } from "@/lib/supabase/static"
 import { notFound } from "next/navigation"
 import Image from "next/image"
+import { ZoomableImage } from "@/components/zoomable-image"
 import Link from "next/link"
 import ReactMarkdown from 'react-markdown'
 
@@ -225,13 +226,14 @@ export default async function ProjectPage({ params }: PageProps) {
           {project.image && (
             <div className="w-full lg:w-1/2 flex-shrink-0">
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/50 bg-card/50 shadow-2xl ring-1 ring-white/10 lg:aspect-[16/10]">
-                <Image
+                <ZoomableImage
                   src={project.image}
                   alt={project.title}
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
+                  containerClassName="w-full h-full"
                 />
               </div>
             </div>
@@ -277,12 +279,13 @@ export default async function ProjectPage({ params }: PageProps) {
                   </h2>
                 </div>
                 <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border/50 bg-card/40 shadow-xl backdrop-blur-sm">
-                  <Image
+                  <ZoomableImage
                     src={project.architecture_image}
                     alt={`${project.title} System Architecture Diagram`}
                     fill
                     className="object-contain p-6"
                     sizes="(max-width: 1200px) 100vw, 768px"
+                    containerClassName="w-full h-full"
                   />
                 </div>
               </section>
