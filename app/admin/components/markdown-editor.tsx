@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { Eye, Edit2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,16 @@ export function MarkdownEditor({
   rows = 5,
 }: MarkdownEditorProps) {
   const [activeTab, setActiveTab] = useState<'write' | 'preview'>('write')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-grow height based on scrollHeight
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea && activeTab === 'write') {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [value, activeTab])
 
   // Simple Markdown formatting parser similar to project detail view
   const formattedContent = value
@@ -77,11 +87,12 @@ export function MarkdownEditor({
       {activeTab === 'write' ? (
         <textarea
           id={id}
+          ref={textareaRef}
           rows={rows}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-border bg-input/10 p-4 text-sm text-foreground placeholder-muted-foreground/50 transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-y"
+          className="w-full rounded-lg border border-border bg-input/10 p-4 text-sm text-foreground placeholder-muted-foreground/50 transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none overflow-hidden"
         />
       ) : (
         <div 

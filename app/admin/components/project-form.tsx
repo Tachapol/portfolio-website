@@ -33,10 +33,21 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(submitAction, null)
   const formRef = useRef<HTMLFormElement>(null)
+  const summaryRef = useRef<HTMLTextAreaElement>(null)
 
   // Form states
   const [projectTitle, setProjectTitle] = useState(project?.title || '')
   const [summary, setSummary] = useState(project?.summary || '')
+
+  // Auto-grow summary textarea height
+  useEffect(() => {
+    const textarea = summaryRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [summary])
+
   const [tagsInput, setTagsInput] = useState(project?.tags?.join(', ') || '')
   const [featured, setFeatured] = useState(project?.featured || false)
   
@@ -254,12 +265,13 @@ export function ProjectForm({ project, submitAction, title }: ProjectFormProps) 
             <textarea
               id="summary"
               name="summary"
+              ref={summaryRef}
               required
               rows={4}
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               placeholder="Provide a detailed description of what the project does, the technical challenge it solves, and the outcomes."
-              className="w-full rounded-lg border border-border bg-input/10 p-4 text-sm text-foreground placeholder-muted-foreground/50 transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-y min-h-[100px]"
+              className="w-full rounded-lg border border-border bg-input/10 p-4 text-sm text-foreground placeholder-muted-foreground/50 transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none overflow-hidden"
             />
           </div>
 

@@ -54,6 +54,7 @@ export function Hero() {
           </a>
         </div>
 
+        {/* Hide metrics as requested
         <dl className="mt-20 grid max-w-3xl grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
           {metrics.map((m) => (
             <div key={m.label} className="bg-card px-6 py-7">
@@ -64,6 +65,7 @@ export function Hero() {
             </div>
           ))}
         </dl>
+        */}
       </div>
     </section>
   )
